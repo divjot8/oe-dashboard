@@ -968,34 +968,60 @@ function showAcct(name){
 function readFile(file,cb){var r=new FileReader();r.onload=function(e){cb(e.target.result);};r.readAsText(file,'iso-8859-1');}
 
 document.getElementById('csv-analytics').addEventListener('change',function(e){
-  var file=e.target.files[0];if(!file)return;
-  readFile(file,function(t){_analyticsText=t;document.getElementById('lbl-analytics').textContent='✓ '+file.name;document.getElementById('drop-analytics').classList.add('loaded');checkReady();});
+  var file=e.target.files[0]; if(!file) return;
+  loadFile(file, true);
 });
 document.getElementById('csv-sf').addEventListener('change',function(e){
-  var file=e.target.files[0];if(!file)return;
-  readFile(file,function(t){_sfText=t;document.getElementById('lbl-sf').textContent='✓ '+file.name;document.getElementById('drop-sf').classList.add('loaded');});
+  var file=e.target.files[0]; if(!file) return;
+  loadFile(file, false);
 });
 
 function checkReady(){var btn=document.getElementById('start-btn');if(_analyticsText){btn.classList.add('ready');}}
 
-function setupDrop(boxId,inputId){
-  var box=document.getElementById(boxId);
-  box.addEventListener('dragover',function(e){e.preventDefault();box.classList.add('drag-over');});
-  box.addEventListener('dragleave',function(){box.classList.remove('drag-over');});
-  box.addEventListener('drop',function(e){
-    e.preventDefault();box.classList.remove('drag-over');
-    var file=e.dataTransfer.files[0];if(!file)return;
-    var fakeEvent={target:{files:[file]}};
-    document.getElementById(inputId).dispatchEvent(Object.assign(new Event('change'),{target:{files:[file]}}));
-    // Manual trigger since dispatchEvent won't propagate files
-    readFile(file,function(t){
-      if(inputId==='csv-analytics'){_analyticsText=t;document.getElementById('lbl-analytics').textContent='✓ '+file.name;document.getElementById('drop-analytics').classList.add('loaded');checkReady();}
-      else{_sfText=t;document.getElementById('lbl-sf').textContent='✓ '+file.name;document.getElementById('drop-sf').classList.add('loaded');}
-    });
+function loadFile(file, isAnalytics){
+  readFile(file, function(t){
+    if(isAnalytics){
+      _analyticsText=t;
+      document.getElementById('lbl-analytics').textContent='✓ '+file.name;
+      document.getElementById('drop-analytics').classList.add('loaded');
+      checkReady();
+    } else {
+      _sfText=t;
+      document.getElementById('lbl-sf').textContent='✓ '+file.name;
+      document.getElementById('drop-sf').classList.add('loaded');
+    }
   });
 }
-setupDrop('drop-analytics','csv-analytics');
-setupDrop('drop-sf','csv-sf');
+
+function setupDrop(boxId, isAnalytics){
+  var box=document.getElementById(boxId);
+  box.addEventListener('dragover', function(e){
+    e.preventDefault();
+    e.stopPropagation();
+    box.classList.add('drag-over');
+  });
+  box.addEventListener('dragenter', function(e){
+    e.preventDefault();
+    box.classList.add('drag-over');
+  });
+  box.addEventListener('dragleave', function(e){
+    // Only remove if leaving the box entirely (not a child element)
+    if(!box.contains(e.relatedTarget)){
+      box.classList.remove('drag-over');
+    }
+  });
+  box.addEventListener('drop', function(e){
+    e.preventDefault();
+    e.stopPropagation();
+    box.classList.remove('drag-over');
+    var file = e.dataTransfer.files[0];
+    if(!file) return;
+    loadFile(file, isAnalytics);
+  });
+}
+
+setupDrop('drop-analytics', true);
+setupDrop('drop-sf', false);
 
 function startDashboard(){
   if(!_analyticsText)return;
