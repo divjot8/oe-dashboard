@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OE Account Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;1,400&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f7f6f3;--bg2:#ffffff;--bg3:#f0ede8;--bg4:#e8e4dd;
+  --border:#e2ddd6;--border2:#ccc8c0;
+  --text:#1a1916;--text2:#5c5852;--text3:#9c9890;
+  --accent:#2d5be3;--accent2:#1a3fa0;
+  --high:#c0392b;--high-bg:#fdf2f1;--high-bd:#f5c6c3;
+  --med:#b7610a;--med-bg:#fdf6ee;--med-bd:#f5dfc0;
+  --low:#1a7a4a;--low-bg:#edf7f2;--low-bd:#b8e2cc;
+  --purple:#6b47c4;--purple-bg:#f3f0fb;--purple-bd:#d0c4f0;
+  --teal:#0d7377;--teal-bg:#edf6f7;--teal-bd:#b0d9db;
+  --r:8px;--rl:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.65;-webkit-font-smoothing:antialiased}
+
+#upload-screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem;background:var(--bg)}
+.ulogo{font-family:'Lora',serif;font-size:1.6rem;color:var(--text);margin-bottom:3rem;letter-spacing:-.01em;font-weight:400}
+.ulogo span{color:var(--accent);font-style:italic}
+.ubox{width:100%;max-width:480px;border:1.5px dashed var(--border2);border-radius:var(--rl);padding:3rem 2rem;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;background:var(--bg2);position:relative}
+.ubox:hover,.ubox.drag-over{border-color:var(--accent);background:#f0f4fe}
+.ubox input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.uicon{width:44px;height:44px;border-radius:10px;background:#e8eefb;display:flex;align-items:center;justify-content:center;margin:0 auto 1.1rem}
+.uicon svg{width:20px;height:20px;stroke:var(--accent);fill:none;stroke-width:1.7}
+.utitle{font-size:1rem;font-weight:500;margin-bottom:.3rem}
+.usub{color:var(--text2);font-size:.85rem}.usub strong{color:var(--text);font-weight:500}
+.uhint{margin-top:1.75rem;font-size:.78rem;color:var(--text3);max-width:400px;line-height:1.7;text-align:center}
+#uprog{display:none;max-width:480px;width:100%;margin-top:1.25rem}
+.plabel{font-size:.8rem;color:var(--text2);margin-bottom:.4rem}
+.ptrack{height:2px;background:var(--border);border-radius:2px;overflow:hidden}
+.pfill{height:100%;background:var(--accent);border-radius:2px;transition:width .3s ease;width:0%}
+
+#dashboard{display:none}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:.85rem 1.75rem;border-bottom:1px solid var(--border);background:var(--bg2);position:sticky;top:0;z-index:100}
+.tlogo{font-family:'Lora',serif;font-size:1.05rem;font-weight:400}
+.tlogo span{color:var(--accent);font-style:italic}
+.tmeta{font-size:.75rem;color:var(--text3);font-weight:300}
+.btn-sm{font-size:.78rem;color:var(--text2);background:none;border:1px solid var(--border2);border-radius:6px;padding:.28rem .7rem;cursor:pointer;font-family:'Inter',sans-serif;transition:color .15s;font-weight:400}
+.btn-sm:hover{color:var(--text);border-color:var(--text3)}
+
+.main{display:grid;grid-template-columns:256px 1fr;min-height:calc(100vh - 50px)}
+.sidebar{border-right:1px solid var(--border);overflow-y:auto;background:var(--bg2);position:sticky;top:50px;height:calc(100vh - 50px)}
+.slabel{font-size:.65rem;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);padding:.8rem 1.1rem .3rem}
+.sitem{display:flex;align-items:center;gap:.5rem;padding:.45rem 1.1rem;cursor:pointer;transition:background .1s;border-left:2px solid transparent}
+.sitem:hover{background:var(--bg3)}
+.sitem.active{background:var(--bg3);border-left-color:var(--accent)}
+.sitem-book{padding:.6rem 1.1rem;border-bottom:1px solid var(--border)}
+.sname{font-size:.8rem;color:var(--text2);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:400}
+.sitem.active .sname{color:var(--text);font-weight:500}
+.sdot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.dH{background:var(--high)}.dM{background:var(--med)}.dL{background:var(--low)}
+.sscore{font-size:.71rem;color:var(--text3);flex-shrink:0;font-weight:300}
+
+.content{padding:2rem 2.25rem;overflow-y:auto;max-width:900px}
+.ptitle{font-family:'Lora',serif;font-size:1.5rem;font-weight:400;color:var(--text);margin-bottom:.2rem;letter-spacing:-.01em}
+.psub{font-size:.82rem;color:var(--text2);margin-bottom:1.75rem;font-weight:300}
+.sec{font-size:.68rem;font-weight:500;text-transform:uppercase;letter-spacing:.09em;color:var(--text3);margin:1.75rem 0 .75rem;display:flex;align-items:center;gap:.5rem}
+.sec::after{content:'';flex:1;height:1px;background:var(--border)}
+
+.sgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:.55rem;margin-bottom:1.5rem}
+.scard{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:.85rem .95rem}
+.scard-label{font-size:.65rem;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;font-weight:500;margin-bottom:.3rem}
+.scard-val{font-size:1.55rem;font-weight:300;line-height:1}
+.scard-sub{font-size:.68rem;color:var(--text3);margin-top:.2rem;font-weight:300}
+.cv-accent{color:var(--accent)}.cv-high{color:var(--high)}.cv-med{color:var(--med)}.cv-low{color:var(--low)}.cv-purple{color:var(--purple)}.cv-teal{color:var(--teal)}
+
+.acards{display:flex;flex-direction:column;gap:.45rem}
+.acard{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:.85rem 1rem;cursor:pointer;transition:border-color .15s,box-shadow .15s;display:grid;grid-template-columns:1fr auto;gap:.5rem;align-items:start}
+.acard:hover{border-color:var(--border2);box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.acard.H{border-left:3px solid var(--high)}.acard.M{border-left:3px solid var(--med)}.acard.L{border-left:3px solid var(--low)}
+.aname{font-size:.87rem;font-weight:500;color:var(--text);margin-bottom:.12rem}
+.asum{font-size:.77rem;color:var(--text2);line-height:1.55;font-weight:300}
+.aright{text-align:right;flex-shrink:0}
+.rbadge{display:inline-block;font-size:.62rem;font-weight:500;padding:.15rem .48rem;border-radius:3px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.28rem}
+.rb-HIGH{background:var(--high-bg);color:var(--high);border:1px solid var(--high-bd)}
+.rb-MEDIUM{background:var(--med-bg);color:var(--med);border:1px solid var(--med-bd)}
+.rb-LOW{background:var(--low-bg);color:var(--low);border:1px solid var(--low-bd)}
+.ascore{font-size:1rem;font-weight:300;color:var(--text2)}
+.pills{display:flex;flex-wrap:wrap;gap:3px;margin-top:.4rem}
+.pill{font-size:.64rem;padding:.1rem .4rem;border-radius:3px;background:var(--bg3);color:var(--text3);border:1px solid var(--border);font-weight:400}
+.pill.w{background:var(--high-bg);color:var(--high);border-color:var(--high-bd)}
+.pill.c{background:var(--med-bg);color:var(--med);border-color:var(--med-bd)}
+.pill.g{background:var(--low-bg);color:var(--low);border-color:var(--low-bd)}
+.pill.p{background:var(--purple-bg);color:var(--purple);border-color:var(--purple-bd)}
+.pill.t{background:var(--teal-bg);color:var(--teal);border-color:var(--teal-bd)}
+
+.dheader{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;margin-bottom:1.5rem}
+.dname{font-family:'Lora',serif;font-size:1.4rem;font-weight:400;letter-spacing:-.01em;color:var(--text);margin-bottom:.2rem}
+.dmeta{font-size:.78rem;color:var(--text2);font-weight:300}
+.backbtn{font-size:.77rem;color:var(--text2);background:none;border:1px solid var(--border2);border-radius:6px;padding:.28rem .7rem;cursor:pointer;font-family:'Inter',sans-serif;transition:color .15s;flex-shrink:0;white-space:nowrap;font-weight:400}
+.backbtn:hover{color:var(--text)}
+.dgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:.5rem;margin-bottom:1.5rem}
+.dstat{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:.75rem .9rem}
+.dslabel{font-size:.63rem;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;font-weight:500;margin-bottom:.2rem}
+.dsval{font-size:1.2rem;font-weight:300;color:var(--text);line-height:1.1}
+.dssub{font-size:.67rem;color:var(--text3);margin-top:.12rem;font-weight:300}
+
+.chart{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:.95rem 1.1rem;margin-bottom:.65rem}
+.ctitle{font-size:.68rem;font-weight:500;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:.85rem}
+.bars{display:flex;align-items:flex-end;gap:4px;height:72px}
+.bg{display:flex;flex-direction:column;align-items:center;gap:2px;flex:1}
+.bf{width:100%;border-radius:2px 2px 0 0;min-height:2px}
+.bl{font-size:.56rem;color:var(--text3);white-space:nowrap;text-align:center;line-height:1.3}
+.bv{font-size:.6rem;color:var(--text2);font-weight:300}
+
+.panel{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:.95rem 1.05rem;margin-bottom:.65rem}
+.ptlabel{font-size:.66rem;font-weight:500;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:.7rem}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:.65rem;margin-bottom:.65rem}
+
+.utable{width:100%;border-collapse:collapse}
+.utable th{font-size:.63rem;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);font-weight:500;padding:.42rem .65rem;text-align:left;border-bottom:1px solid var(--border)}
+.utable td{padding:.52rem .65rem;font-size:.78rem;color:var(--text2);border-bottom:1px solid var(--border);font-weight:300}
+.utable tr:last-child td{border-bottom:none}
+.utable td:first-child{color:var(--text);font-size:.76rem;word-break:break-all;font-weight:400}
+.sbadge{display:inline-block;font-size:.61rem;font-weight:500;padding:.1rem .4rem;border-radius:3px;text-transform:uppercase;letter-spacing:.04em}
+.sA{background:var(--low-bg);color:var(--low)}
+.sQ{background:var(--med-bg);color:var(--med)}
+.sD{background:var(--high-bg);color:var(--high)}
+.sE{background:var(--bg3);color:var(--text3)}
+
+.mixbar{height:7px;border-radius:4px;overflow:hidden;display:flex;margin:.45rem 0}
+.mixseg{height:100%}
+.mixleg{display:flex;gap:.8rem;flex-wrap:wrap;margin-top:.3rem}
+.mitem{display:flex;align-items:center;gap:.3rem;font-size:.7rem;color:var(--text2);font-weight:300}
+.mdot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+
+.dbcode-list{display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.25rem}
+.dbcode{font-size:.69rem;padding:.16rem .5rem;border-radius:3px;background:var(--teal-bg);color:var(--teal);border:1px solid var(--teal-bd);font-weight:400}
+.dbcode.single{background:var(--med-bg);color:var(--med);border-color:var(--med-bd)}
+
+.clist{display:flex;flex-direction:column;gap:.3rem}
+.citem{display:flex;align-items:center;justify-content:space-between;padding:.36rem .6rem;background:var(--bg3);border:1px solid var(--border);border-radius:5px;font-size:.76rem}
+.citem-name{color:var(--text);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-right:.6rem;font-weight:400}
+.citem-n{font-size:.68rem;color:var(--text3);flex-shrink:0;font-weight:300}
+
+.rflag{display:flex;gap:.5rem;align-items:flex-start;padding:.5rem .65rem;background:var(--high-bg);border:1px solid var(--high-bd);border-radius:6px;margin-bottom:.35rem;font-size:.78rem;color:var(--text2);line-height:1.55;font-weight:300}
+.rfdot{width:5px;height:5px;border-radius:50%;background:var(--high);flex-shrink:0;margin-top:5px}
+.noflag{padding:.65rem;background:var(--low-bg);border:1px solid var(--low-bd);border-radius:6px;font-size:.78rem;color:var(--low);font-weight:300}
+.tp{background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:0 var(--r) var(--r) 0;padding:.75rem .9rem;font-size:.8rem;color:var(--text2);line-height:1.65;font-style:italic;margin-bottom:.45rem;font-weight:300}
+
+.pitem{padding:.5rem 0;border-bottom:1px solid var(--border);font-size:.8rem;color:var(--text2);line-height:1.55;display:flex;gap:.55rem;align-items:flex-start;font-weight:300}
+.pitem:last-child{border-bottom:none}
+.pnum{font-size:.66rem;color:var(--text3);flex-shrink:0;padding-top:3px;font-weight:400}
+
+.gap-notice{background:var(--purple-bg);border:1px solid var(--purple-bd);border-radius:var(--r);padding:.7rem .95rem;margin-bottom:1rem;font-size:.77rem;color:var(--text2);line-height:1.6;font-weight:300}
+.gap-notice-title{font-size:.67rem;font-weight:500;text-transform:uppercase;letter-spacing:.07em;color:var(--purple);margin-bottom:.35rem}
+.gap-items{display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.45rem}
+.gap-pill{font-size:.66rem;padding:.13rem .45rem;border-radius:3px;background:white;color:var(--purple);border:1px solid var(--purple-bd);font-weight:400}
+
+.sharing-alert{background:var(--med-bg);border:1px solid var(--med-bd);border-radius:var(--r);padding:.7rem .95rem;margin-bottom:.5rem;font-size:.78rem;color:var(--text);font-weight:300;line-height:1.6}
+.sharing-alert strong{font-weight:500;color:var(--med)}
+.sharing-none{background:var(--low-bg);border:1px solid var(--low-bd);border-radius:var(--r);padding:.6rem .9rem;font-size:.78rem;color:var(--low);font-weight:300}
+.ip-badge{display:inline-block;font-size:.61rem;font-weight:500;padding:.1rem .4rem;border-radius:3px}
+.ip-ok{background:var(--low-bg);color:var(--low);border:1px solid var(--low-bd)}
+.ip-flag{background:var(--med-bg);color:var(--med);border:1px solid var(--med-bd)}
+
+@media(max-width:640px){.main{grid-template-columns:1fr}.two{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div id="upload-screen">
+  <div class="ulogo">OE <span>Intelligence</span></div>
+  <div class="ubox" id="dropzone">
+    <input type="file" accept=".csv" id="csv-input">
+    <div class="uicon">
+      <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    </div>
+    <div class="utitle">Upload your analytics export</div>
+    <div class="usub">Drop your CSV here or <strong>click to browse</strong></div>
+  </div>
+  <div id="uprog">
+    <div class="plabel" id="plabel">Parsing...</div>
+    <div class="ptrack"><div class="pfill" id="pfill"></div></div>
+  </div>
+  <p class="uhint">All processing happens locally in your browser. No data is transmitted anywhere.</p>
+</div>
+
+<div id="dashboard">
+  <div class="topbar">
+    <div class="tlogo">OE <span>Intelligence</span></div>
+    <div class="tmeta" id="tmeta"></div>
+    <button class="btn-sm" onclick="resetApp()">↺ New file</button>
+  </div>
+  <div class="main">
+    <div class="sidebar" id="sidebar"></div>
+    <div class="content" id="content"></div>
+  </div>
+</div>
+
+<script>
+var ACCTS={},LIST=[],QUARTERS=[],RQ,PQ;
+var SEATS=5;
+var DB_NAMES={
+  'ABFS':'Australia Building & Construction','AUSC':'Australia Scenarios',
+  'WDMacro':'World Detail Macro','GCS':'Global City Scenarios',
+  'IIS':'Industry & Innovation Scenarios','ACP':'Australia City Projections',
+  'GFCF':'Global Fixed Capital Formation','EUMacro':'EU Macro','UKMacro':'UK Macro'
+};
+function dbName(c){return DB_NAMES[c]||c;}
+
+// ── EVENT CLASSIFICATION ──
+// Returns a tier string for every event.
+// "platform" tier = real human action on the product.
+// "email" tier = passive open, lowest signal.
+// Login events are NOT counted as engagement — they are a byproduct of access,
+// not a usage action. Last-seen dates use platform activity, not login.
+function classify(src,act){
+  src=src||''; act=act||'';
+  if(src==='databank'&&(act==='ViewTableData'||act==='DownloadStart'||act==='Search')) return 'databank';
+  if(act==='DownloadProduct'||act==='DownloadCustomReport'||act==='Download') return 'download';
+  if(act==='ChatbotMessage') return 'chatbot';
+  if(src==='Excel Plugin'||src==='excel plugin') return 'excel';
+  if(src==='Databank API'||src==='databank api') return 'api';
+  if(src==='my oxford'&&(act==='OpenLandingPage'||act==='OpenChapter'||act==='StayOnProduct'||act==='OpenFile'||act==='SearchWithinProduct')) return 'platform';
+  if(src==='my oxford'&&(act==='OpenExternalProduct'||act==='OpenMarketingPage')) return 'platform';
+  if(act==='Login'||act==='LoginFederatedIdentity'||act==='LoginIpAddress') return 'login';
+  if(src==='email'&&act==='click') return 'email_click';
+  if(src==='email'&&(act==='unsubscribe'||act==='list_unsubscribe')) return 'unsub';
+  if(src==='email') return 'email';
+  return 'other';
+}
+
+// Is this event real platform engagement (not login, not passive email)?
+function isEngagement(tier){
+  return tier==='databank'||tier==='download'||tier==='chatbot'||
+         tier==='excel'||tier==='api'||tier==='platform'||tier==='email_click';
+}
+
+// Is this a "platform presence" event — anything that isn't a passive email open?
+function isPlatformPresence(tier){
+  return isEngagement(tier)||tier==='login';
+}
+
+// ── RFC 4180 CSV PARSER ──
+function parseCSV(text){
+  var pos=0,len=text.length;
+  function field(){
+    if(pos<len&&text[pos]==='"'){
+      pos++;var v='';
+      while(pos<len){if(text[pos]==='"'){pos++;if(pos<len&&text[pos]==='"'){v+='"';pos++;}else break;}else v+=text[pos++];}
+      return v;
+    }
+    var v='';
+    while(pos<len&&text[pos]!==','&&text[pos]!=='\n'&&text[pos]!=='\r')v+=text[pos++];
+    return v;
+  }
+  function line(){
+    var f=[];
+    while(pos<len&&text[pos]!=='\n'&&text[pos]!=='\r'){f.push(field());if(pos<len&&text[pos]===',')pos++;}
+    if(pos<len&&text[pos]==='\r')pos++;
+    if(pos<len&&text[pos]==='\n')pos++;
+    return f;
+  }
+  var headers=line(),idx={};
+  headers.forEach(function(h,i){idx[h.trim()]=i;});
+  var rows=[];
+  while(pos<len){
+    var f=line();if(f.length<3)continue;
+    var row={};
+    Object.keys(idx).forEach(function(h){row[h]=(f[idx[h]]||'').trim();});
+    if(row['Account Name']&&row['Account Name'].length>1)rows.push(row);
+  }
+  return rows;
+}
+
+function getQ(d){if(!d)return null;var dt=new Date(d);if(isNaN(dt))return null;return dt.getFullYear()+'-Q'+(Math.floor(dt.getMonth()/3)+1);}
+function ql(q){if(!q)return'—';var m={Q1:'Jan–Mar',Q2:'Apr–Jun',Q3:'Jul–Sep',Q4:'Oct–Dec'};var p=q.split('-');return(m[p[1]]||p[1])+' '+p[0];}
+
+function detectSources(rows){
+  var s={};rows.forEach(function(r){s[r['EventSource']]=1;});
+  return{
+    hasExcel:!!(s['Excel Plugin']||s['excel plugin']),
+    hasAPI:!!(s['Databank API']||s['databank api']),
+    hasEmailClicks:rows.some(function(r){return r['EventSource']==='email'&&r['EventAction']==='click';}),
+    hasEmailUnsub:rows.some(function(r){return r['EventSource']==='email'&&r['EventAction']==='unsubscribe';}),
+    hasSSO:rows.some(function(r){return r['EventAction']==='LoginFederatedIdentity'||r['EventAction']==='LoginIpAddress';}),
+    hasDeep:rows.some(function(r){return['OpenChapter','StayOnProduct','OpenFile','DownloadCustomReport'].indexOf(r['EventAction'])>-1;})
+  };
+}
+
+function analyseIPs(users,events){
+  var ipUsers={};
+  events.forEach(function(e){
+    var ip=e['IP Address']||'',user=e['User']||e['Contact Name']||'';
+    if(!ip||!user)return;
+    if(!ipUsers[ip])ipUsers[ip]=new Set();
+    ipUsers[ip].add(user);
+  });
+  var sharedIPs=[];
+  Object.entries(ipUsers).forEach(function(e){var ip=e[0],u=e[1];if(u.size>1)sharedIPs.push({ip:ip,users:[...u]});});
+  sharedIPs.sort(function(a,b){return b.users.length-a.users.length;});
+  var sharingFlags=[];
+  Object.entries(users).forEach(function(e){
+    var user=e[0],ud=e[1];
+    if(ud.ips.size<=2&&ud.platformEvts>20)
+      sharingFlags.push({user:user,ips:ud.ips.size,evts:ud.platformEvts,
+        note:'High activity ('+ud.platformEvts+' platform events) from only '+ud.ips.size+' IP address'+(ud.ips.size>1?'es':'')+'.'});
+  });
+  var allIPs=new Set();
+  events.forEach(function(e){if(e['IP Address'])allIPs.add(e['IP Address']);});
+  return{sharedIPs:sharedIPs.slice(0,3),sharingFlags:sharingFlags,totalUniqueIPs:allIPs.size};
+}
+
+// ── PROCESS ──
+function process(rows){
+  var accts={};
+  var today=new Date();
+  window._exportSources=detectSources(rows);
+
+  rows.forEach(function(r){
+    var acct=r['Account Name'];
+    if(!acct||acct.length<2)return;
+    if(!accts[acct])accts[acct]={
+      name:acct,events:[],users:{},qEng:{},
+      portalDbEvts:0,excelDbEvts:0,apiDbEvts:0,
+      reportEvts:0,chatbotEvts:0,
+      emailOpens:0,emailClicks:0,emailUnsubs:0,
+      databankCodes:{},databankVars:0,databankRegions:0,
+      products:{},titles:{},
+      lastPlatform:null  // last real platform activity — NOT login
+    };
+    var A=accts[acct];
+    A.events.push(r);
+
+    var src=r['EventSource']||'',act=r['EventAction']||'';
+    var tier=classify(src,act);
+    var dt=r['EventDate'],q=getQ(dt);
+
+    // Last platform activity: anything except passive email opens and logins
+    if(isEngagement(tier)&&dt){
+      if(!A.lastPlatform||dt>A.lastPlatform)A.lastPlatform=dt;
+    }
+
+    // Quarterly engagement: real actions only — no logins, no email opens
+    if(isEngagement(tier)&&q)A.qEng[q]=(A.qEng[q]||0)+1;
+
+    // Access method buckets
+    if(tier==='databank')A.portalDbEvts++;
+    if(tier==='excel')A.excelDbEvts++;
+    if(tier==='api')A.apiDbEvts++;
+    if(tier==='download'||tier==='platform')A.reportEvts++;
+    if(tier==='chatbot')A.chatbotEvts++;
+    if(tier==='email')A.emailOpens++;
+    if(tier==='email_click')A.emailClicks++;
+    if(tier==='unsub')A.emailUnsubs++;
+
+    // DataBankCode
+    var dbc=r['DataBankCode']||'';
+    if(dbc){dbc.split(',').forEach(function(c){c=c.trim();if(c)A.databankCodes[c]=(A.databankCodes[c]||0)+1;});}
+    var vars=parseInt(r['Variables']||'0',10)||0;
+    var regs=parseInt(r['Regions']||'0',10)||0;
+    if(vars>0)A.databankVars+=vars;
+    if(regs>0)A.databankRegions+=regs;
+
+    var leaf=r['Leaf product'];if(leaf)A.products[leaf]=(A.products[leaf]||0)+1;
+    var title=r['Report Title'];if(title)A.titles[title]=(A.titles[title]||0)+1;
+
+    // User tracking — status based on last PLATFORM activity, not login
+    var user=r['User']||r['Contact Name'];
+    if(user&&user.length>2){
+      if(!A.users[user])A.users[user]={
+        evts:0,platformEvts:0,emailEvts:0,
+        lastPlatform:null,  // last real platform action
+        lastSeen:null,      // last any activity including email
+        ips:new Set(),
+        status:'EMAIL_ONLY'
+      };
+      var ud=A.users[user];
+      ud.evts++;
+      if(dt&&(!ud.lastSeen||dt>ud.lastSeen))ud.lastSeen=dt;
+      var ip=r['IP Address']||'';if(ip)ud.ips.add(ip);
+
+      if(isEngagement(tier)){
+        ud.platformEvts++;
+        if(dt&&(!ud.lastPlatform||dt>ud.lastPlatform))ud.lastPlatform=dt;
+      }
+      if(tier==='email')ud.emailEvts++;
+    }
+  });
+
+  // Quarters
+  var qSet={};
+  Object.values(accts).forEach(function(a){Object.keys(a.qEng).forEach(function(q){qSet[q]=1;});});
+  var allQ=Object.keys(qSet).sort();
+  if(allQ.length>1){
+    var last=allQ[allQ.length-1],prev=allQ[allQ.length-2];
+    var ls=0,ps=0;
+    Object.values(accts).forEach(function(a){ls+=a.qEng[last]||0;ps+=a.qEng[prev]||0;});
+    if(ps>0&&ls/ps<0.45)allQ=allQ.slice(0,-1);
+  }
+  QUARTERS=allQ;RQ=allQ[allQ.length-1];PQ=allQ.length>=2?allQ[allQ.length-2]:null;
+
+  var d30=new Date(today);d30.setDate(d30.getDate()-30);
+  var d60=new Date(today);d60.setDate(d60.getDate()-60);
+  var d90=new Date(today);d90.setDate(d90.getDate()-90);
+
+  Object.values(accts).forEach(function(A){
+    // Set user statuses based on lastPlatform
+    Object.values(A.users).forEach(function(ud){
+      if(ud.platformEvts===0){
+        ud.status='EMAIL_ONLY';  // opened emails but never touched the platform
+      } else {
+        var lp=ud.lastPlatform?new Date(ud.lastPlatform):null;
+        if(lp&&lp>=d30)ud.status='ACTIVE';
+        else if(lp&&lp>=d60)ud.status='QUIET';
+        else ud.status='DORMANT';
+      }
+    });
+
+    // Active users = platform activity in last 90 days (not just email)
+    var active=0,dormant=0,emailOnly=0;
+    Object.values(A.users).forEach(function(ud){
+      var lp=ud.lastPlatform?new Date(ud.lastPlatform):null;
+      if(lp&&lp>=d90)active++;
+      if(ud.status==='DORMANT')dormant++;
+      if(ud.status==='EMAIL_ONLY')emailOnly++;
+    });
+
+    var recEng=A.qEng[RQ]||0,priEng=PQ?(A.qEng[PQ]||0):0;
+    var trend=priEng>0?(recEng-priEng)/priEng*100:0;
+    var seatUtil=active/SEATS*100;
+    var totalDbEvts=A.portalDbEvts+A.excelDbEvts+A.apiDbEvts;
+    var dbCodeCount=Object.keys(A.databankCodes).length;
+    var isAdvanced=A.excelDbEvts>0||A.apiDbEvts>0;
+
+    // daysSince = days since last real platform action
+    // No more 999 — if no platform activity exists, show null and handle cleanly
+    var daysSince=null;
+    if(A.lastPlatform){
+      daysSince=Math.floor((today-new Date(A.lastPlatform))/86400000);
+    }
+
+    var recProds={};
+    A.events.forEach(function(e){
+      var t=classify(e['EventSource'],e['EventAction']);
+      if(isEngagement(t)&&getQ(e['EventDate'])===RQ&&e['Leaf product'])recProds[e['Leaf product']]=1;
+    });
+    var recProdCount=Object.keys(recProds).length;
+
+    var ipData=analyseIPs(A.users,A.events);
+
+    // ── RISK SCORING ──
+    // Based on platform engagement, not logins.
+    // daysSince null = no platform activity ever recorded = max risk for that signal.
+    var risk=0;
+    if(trend<-50)risk+=30;else if(trend<-25)risk+=20;else if(trend<0)risk+=10;else if(trend>25)risk-=15;
+    var daysForRisk=daysSince!==null?daysSince:999;
+    if(daysForRisk>45)risk+=25;  // no platform activity in 45+ days
+    if(seatUtil<40)risk+=20;else if(seatUtil<60)risk+=10;
+    if(totalDbEvts===0)risk+=15;else if(dbCodeCount<=1)risk+=8;
+    if(recProdCount<=1&&recEng>0)risk+=10;
+    if(dormant>=2)risk+=10;
+    if(isAdvanced)risk-=10;
+    if(A.emailUnsubs>0)risk+=20;
+    if(A.chatbotEvts>0)risk-=5;
+    risk=Math.max(0,Math.min(100,risk));
+    var band=risk>=65?'HIGH':risk>=35?'MEDIUM':'LOW';
+
+    // Talking points
+    var topP=Object.entries(A.products).sort(function(a,b){return b[1]-a[1];}).slice(0,2).map(function(x){return x[0];});
+    var dbCodes=Object.keys(A.databankCodes);
+    var tps=[];
+    if(topP.length)tps.push('"I noticed your team has been focused on '+topP[0]+' content — we have some new research just published that should be relevant. Happy to point you to it."');
+    if(active<SEATS)tps.push('"We have '+SEATS+' seats on the account but only '+active+' '+(active===1?'person has':'people have')+' been active on the platform recently — are there new team members we should be onboarding?"');
+    if(totalDbEvts===0)tps.push('"I noticed your team has mostly been using reports — the databank lets you pull custom data series and I\'d be happy to walk you through it."');
+    else if(dbCodes.length===1)tps.push('"Your team has been querying the '+dbName(dbCodes[0])+' databank regularly — are you aware we also cover '+Object.keys(DB_NAMES).filter(function(k){return k!==dbCodes[0];}).slice(0,2).map(dbName).join(' and ')+'?"');
+    else if(isAdvanced)tps.push('"I can see your team is using our API/Excel integration — I wanted to check in and flag any new databanks that might be relevant to your work."');
+    if(trend<-30&&tps.length<3)tps.push('"I wanted to check in — activity has been lighter this quarter and I want to make sure you\'re getting full value. Is there anything we could improve?"');
+    if(tps.length<3)tps.push('"What are the biggest economic questions your team is working through right now? I want to make sure you\'re across the most relevant content we have."');
+
+    // Red flags
+    var flags=[];
+    if(trend<-50)flags.push('Platform engagement down '+Math.abs(trend).toFixed(0)+'% quarter-on-quarter.');
+    if(daysSince===null)flags.push('No platform activity recorded — account may be email-only or using an untracked access method.');
+    else if(daysSince>45)flags.push('No platform activity in '+daysSince+' days.');
+    if(seatUtil<40)flags.push('Only '+active+' of '+SEATS+' seats active on the platform in the last 90 days.');
+    if(totalDbEvts===0)flags.push('No databank usage of any kind — significant underutilisation.');
+    else if(dbCodes.length===1)flags.push('Only using one databank ('+dbName(dbCodes[0])+') — single-use dependency.');
+    if(dormant>=2)flags.push(dormant+' previously active users have gone silent.');
+    if(A.emailUnsubs>0)flags.push('User has unsubscribed from OE emails.');
+    if(ipData.sharingFlags.length>0)ipData.sharingFlags.forEach(function(f){flags.push('IP flag: '+f.note);});
+
+    // Pills
+    var pills=[];
+    if(trend<-25)pills.push({t:'↓'+Math.abs(trend).toFixed(0)+'% QoQ',c:'w'});
+    else if(trend>25)pills.push({t:'↑'+trend.toFixed(0)+'% QoQ',c:'g'});
+    if(seatUtil<40)pills.push({t:active+'/5 seats',c:'w'});
+    else if(seatUtil>=80)pills.push({t:active+'/5 seats',c:'g'});
+    else pills.push({t:active+'/5 seats',c:''});
+    if(totalDbEvts===0)pills.push({t:'No databank',c:'c'});
+    else if(isAdvanced)pills.push({t:'API/Excel',c:'p'});
+    else if(dbCodeCount===1)pills.push({t:'1 databank',c:'c'});
+    if(daysSince===null)pills.push({t:'No platform activity',c:'w'});
+    else if(daysSince>45)pills.push({t:daysSince+'d inactive',c:'w'});
+    if(A.emailUnsubs>0)pills.push({t:'Unsubscribed',c:'w'});
+    if(A.chatbotEvts>0)pills.push({t:'AI assistant',c:'t'});
+    if(ipData.sharingFlags.length>0)pills.push({t:'IP flag',c:'c'});
+
+    A.risk=risk;A.band=band;A.trend=trend;A.recEng=recEng;A.priEng=priEng;
+    A.active=active;A.dormant=dormant;A.emailOnly=emailOnly;
+    A.seatUtil=seatUtil;A.daysSince=daysSince;
+    A.totalDbEvts=totalDbEvts;A.dbCodeCount=dbCodeCount;A.isAdvanced=isAdvanced;
+    A.recProdCount=recProdCount;A.ipData=ipData;
+    A.pills=pills;A.tps=tps;A.flags=flags;
+  });
+  return accts;
+}
+
+function daysLabel(d){
+  if(d===null)return'No activity';
+  if(d<1)return'Today';
+  if(d===1)return'Yesterday';
+  return d+'d ago';
+}
+
+function exportGapHtml(){
+  var s=window._exportSources||{};
+  var gaps=[];
+  if(!s.hasExcel)gaps.push('Excel Plugin usage');
+  if(!s.hasAPI)gaps.push('Databank API pulls');
+  if(!s.hasEmailClicks)gaps.push('Email link clicks');
+  if(!s.hasEmailUnsub)gaps.push('Email unsubscribes');
+  if(!s.hasSSO)gaps.push('SSO / IP address logins');
+  if(!s.hasDeep)gaps.push('Deep content engagement');
+  if(!gaps.length)return'';
+  return'<div class="gap-notice"><div class="gap-notice-title">Export coverage gaps</div>The following signals are defined in your analytics system but absent from this export. Clients using these access methods may appear less active than they are.<div class="gap-items">'+gaps.map(function(g){return'<span class="gap-pill">'+g+'</span>';}).join('')+'</div></div>';
+}
+
+function renderSidebar(sel){
+  var high=LIST.filter(function(a){return a.band==='HIGH';});
+  var med=LIST.filter(function(a){return a.band==='MEDIUM';});
+  var low=LIST.filter(function(a){return a.band==='LOW';});
+  function grp(label,arr,dc){
+    if(!arr.length)return'';
+    return'<div class="slabel">'+label+' ('+arr.length+')</div>'
+      +arr.map(function(a){return'<div class="sitem'+(sel===a.name?' active':'')+'" onclick="showAcct(\''+a.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'")+'\')"><div class="sdot '+dc+'"></div><div class="sname">'+a.name+'</div><div class="sscore">'+a.risk+'</div></div>';}).join('');
+  }
+  document.getElementById('sidebar').innerHTML=
+    '<div class="sitem sitem-book'+(sel===null?' active':'')+'" onclick="showBook()"><div class="sname" style="font-weight:500;color:var(--text)">Book overview</div></div>'
+    +grp('High risk',high,'dH')+grp('Medium risk',med,'dM')+grp('Low risk',low,'dL');
+}
+
+function showBook(){
+  renderSidebar(null);
+  var high=LIST.filter(function(a){return a.band==='HIGH';});
+  var med=LIST.filter(function(a){return a.band==='MEDIUM';});
+  var low=LIST.filter(function(a){return a.band==='LOW';});
+  var grow=LIST.filter(function(a){return a.trend>25&&a.band==='LOW';});
+  var totR=LIST.reduce(function(s,a){return s+a.recEng;},0);
+  var totP=LIST.reduce(function(s,a){return s+a.priEng;},0);
+  var bkTrend=totP>0?(totR-totP)/totP*100:0;
+  var lowSeat=LIST.filter(function(a){return a.seatUtil<40;}).length;
+  var noDB=LIST.filter(function(a){return a.totalDbEvts===0;}).length;
+  var advUsers=LIST.filter(function(a){return a.isAdvanced;}).length;
+  var ipFlags=LIST.filter(function(a){return a.ipData&&a.ipData.sharingFlags.length>0;}).length;
+  var tstr=function(t){return t>=0?'+'+t.toFixed(0)+'%':t.toFixed(0)+'%';};
+
+  var patterns=[];
+  if(high.length)patterns.push(high.length+' account'+(high.length>1?'s require':'requires')+' immediate outreach — significant platform engagement drop this quarter.');
+  if(noDB>LIST.length*0.3)patterns.push(noDB+' of '+LIST.length+' accounts have no databank usage — widespread underutilisation creating renewal risk.');
+  if(ipFlags>0)patterns.push(ipFlags+' account'+(ipFlags>1?'s have':'has')+' IP patterns worth reviewing for credential sharing.');
+  if(advUsers>0)patterns.push(advUsers+' account'+(advUsers>1?'s use':'uses')+' API or Excel Plugin — your most embedded clients and strongest renewal candidates.');
+  patterns.push('Overall book platform engagement '+(bkTrend>=0?'up':'down')+' '+Math.abs(bkTrend).toFixed(0)+'% QoQ ('+totP+' → '+totR+' events).');
+
+  var html=exportGapHtml();
+  html+='<div class="ptitle">Book overview</div><div class="psub">'+ql(RQ)+' · '+LIST.length+' accounts</div>';
+  html+='<div class="sgrid">'
+    +sc('Accounts',LIST.length,'cv-accent','in your book')
+    +sc('High risk',high.length,'cv-high','outreach now')
+    +sc('Medium risk',med.length,'cv-med','monitor')
+    +sc('Low risk',low.length,'cv-low','healthy')
+    +sc('Book QoQ',tstr(bkTrend),bkTrend>=0?'cv-low':'cv-high','platform engagement')
+    +sc('No databank',noDB,noDB>3?'cv-high':'cv-med','zero usage')
+    +sc('API/Excel',advUsers,'cv-purple','advanced access')
+    +sc('IP flags',ipFlags,ipFlags>0?'cv-med':'cv-teal','sharing signals')
+    +'</div>';
+  html+='<div class="sec">Priority focus</div><div class="acards">'+LIST.slice(0,3).map(acard).join('')+'</div>';
+  if(high.length>3)html+='<div class="sec">All high risk</div><div class="acards">'+high.slice(3).map(acard).join('')+'</div>';
+  if(med.length)html+='<div class="sec">Medium risk</div><div class="acards">'+med.map(acard).join('')+'</div>';
+  if(grow.length)html+='<div class="sec">Upsell candidates</div><div class="acards">'+grow.map(acard).join('')+'</div>';
+  html+='<div class="sec">Patterns</div><div class="panel">'+patterns.map(function(p,i){return'<div class="pitem"><span class="pnum">0'+(i+1)+'</span><span>'+p+'</span></div>';}).join('')+'</div>';
+  document.getElementById('content').innerHTML=html;
+}
+
+function sc(label,val,cls,sub){return'<div class="scard"><div class="scard-label">'+label+'</div><div class="scard-val '+cls+'">'+val+'</div><div class="scard-sub">'+sub+'</div></div>';}
+
+function acard(a){
+  var pills=a.pills.map(function(p){return'<span class="pill '+p.c+'">'+p.t+'</span>';}).join('');
+  return'<div class="acard '+a.band[0]+'" onclick="showAcct(\''+a.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'")+'\')"><div><div class="aname">'+a.name+'</div><div class="asum">'+buildSum(a)+'</div><div class="pills">'+pills+'</div></div><div class="aright"><div><span class="rbadge rb-'+a.band+'">'+a.band+'</span></div><div class="ascore">'+a.risk+'</div></div></div>';
+}
+
+function buildSum(a){
+  var p=[];
+  if(a.trend<-25)p.push('Engagement down '+Math.abs(a.trend).toFixed(0)+'% QoQ');
+  else if(a.trend>25)p.push('Engagement up '+a.trend.toFixed(0)+'% QoQ');
+  if(a.daysSince===null)p.push('no platform activity recorded');
+  else if(a.daysSince>45)p.push('inactive for '+a.daysSince+' days');
+  if(a.seatUtil<40)p.push(a.active+'/5 seats active');
+  if(a.totalDbEvts===0)p.push('no databank use');
+  else if(a.isAdvanced)p.push('API/Excel access');
+  return p.length?p.join('; ')+'.':'Broadly stable.';
+}
+
+function showAcct(name){
+  renderSidebar(name);
+  var A=ACCTS[name];if(!A)return;
+
+  var maxV=1;QUARTERS.forEach(function(q){if((A.qEng[q]||0)>maxV)maxV=A.qEng[q];});
+  var bars=QUARTERS.map(function(q){
+    var v=A.qEng[q]||0,h=Math.round((v/maxV)*68);
+    var col=q===RQ?'var(--accent)':q===PQ?'var(--bg4)':'var(--border)';
+    var p=q.split('-');
+    return'<div class="bg"><div class="bv">'+(v||'')+'</div><div class="bf" style="height:'+h+'px;background:'+col+'"></div><div class="bl">'+p[1]+'<br>'+p[0].slice(2)+'</div></div>';
+  }).join('');
+
+  var tstr=A.trend>=0?'+'+A.trend.toFixed(0)+'%':A.trend.toFixed(0)+'%';
+  var tcol=A.trend>=0?'var(--low)':'var(--high)';
+  var scol=A.seatUtil<40?'var(--high)':A.seatUtil>=80?'var(--low)':'var(--med)';
+  var dcol=(A.daysSince===null||A.daysSince>45)?'var(--high)':'var(--text)';
+
+  // Three-way mix
+  var totAll=A.reportEvts+A.portalDbEvts+A.excelDbEvts+A.apiDbEvts;
+  var rpPct=totAll>0?Math.round(A.reportEvts/totAll*100):0;
+  var pdbPct=totAll>0?Math.round(A.portalDbEvts/totAll*100):0;
+  var advPct=100-rpPct-pdbPct;
+  var mixBar='<div class="mixbar"><div class="mixseg" style="width:'+rpPct+'%;background:var(--accent)"></div><div class="mixseg" style="width:'+pdbPct+'%;background:var(--low)"></div><div class="mixseg" style="width:'+advPct+'%;background:var(--purple)"></div></div>'
+    +'<div class="mixleg"><div class="mitem"><div class="mdot" style="background:var(--accent)"></div>Reports '+rpPct+'%</div><div class="mitem"><div class="mdot" style="background:var(--low)"></div>Databank portal '+pdbPct+'%</div><div class="mitem"><div class="mdot" style="background:var(--purple)"></div>API / Excel '+advPct+'%</div></div>';
+
+  // Databank codes
+  var dbCodes=Object.entries(A.databankCodes).sort(function(a,b){return b[1]-a[1];});
+  var dbHtml='';
+  if(dbCodes.length){
+    dbHtml='<div class="dbcode-list">'+dbCodes.map(function(e){return'<span class="dbcode'+(dbCodes.length===1?' single':'')+'">'+e[0]+' <span style="opacity:.65;font-size:.63rem">'+dbName(e[0])+'</span></span>';}).join('')+'</div>';
+    if(A.databankVars>0)dbHtml+='<div style="font-size:.7rem;color:var(--text3);margin-top:.4rem;font-weight:300">'+A.databankVars.toLocaleString()+' variables · '+A.databankRegions.toLocaleString()+' regions across all queries</div>';
+  }else{
+    dbHtml='<div style="color:var(--text3);font-size:.78rem;font-weight:300">No databank activity recorded.</div>';
+  }
+
+  // User table — status based on platform activity
+  // EMAIL_ONLY users shown with grey badge and note
+  var userRows=Object.entries(A.users).sort(function(a,b){
+    // Sort: platform users first (by last platform date), then email-only
+    var ap=a[1].lastPlatform||'',bp=b[1].lastPlatform||'';
+    if(ap&&!bp)return -1;if(!ap&&bp)return 1;
+    return bp>ap?1:bp<ap?-1:0;
+  }).map(function(e){
+    var u=e[0],ud=e[1];
+    var badgeClass={ACTIVE:'sA',QUIET:'sQ',DORMANT:'sD',EMAIL_ONLY:'sE'}[ud.status]||'sE';
+    var badgeLabel={ACTIVE:'Active',QUIET:'Quiet',DORMANT:'Dormant',EMAIL_ONLY:'Email only'}[ud.status]||ud.status;
+    var lastSeen=ud.lastPlatform||'—';
+    var ipCount=ud.ips?ud.ips.size:0;
+    var ipFlagged=ipCount<=2&&ud.platformEvts>15;
+    var ipClass=ipFlagged?'ip-flag':'ip-ok';
+    return'<tr><td>'+u+'</td>'
+      +'<td>'+ud.platformEvts+'</td>'
+      +'<td style="font-size:.71rem;font-weight:300">'+lastSeen+'</td>'
+      +'<td><span class="sbadge '+badgeClass+'">'+badgeLabel+'</span></td>'
+      +'<td><span class="ip-badge '+ipClass+'">'+ipCount+'</span></td>'
+      +'</tr>';
+  }).join('');
+
+  // IP sharing
+  var ipData=A.ipData;
+  var ipHtml='';
+  if(ipData.sharingFlags.length>0){
+    ipHtml=ipData.sharingFlags.map(function(f){return'<div class="sharing-alert"><strong>Single-device flag</strong> — '+f.user+'<br>'+f.note+'</div>';}).join('');
+  }
+  var suspicious=ipData.sharedIPs.filter(function(x){return x.users.length>=3;});
+  if(suspicious.length>0){
+    ipHtml+='<div style="margin-top:.5rem"><div style="font-size:.72rem;color:var(--text3);font-weight:500;text-transform:uppercase;letter-spacing:.07em;margin-bottom:.45rem">IPs shared across multiple users</div>'
+      +suspicious.slice(0,3).map(function(x){return'<div style="font-size:.78rem;color:var(--text2);padding:.4rem 0;border-bottom:1px solid var(--border);font-weight:300"><code style="font-size:.72rem;background:var(--bg3);padding:.1rem .35rem;border-radius:3px;margin-right:.5rem">'+x.ip+'</code>'+x.users.join(', ')+'</div>';}).join('')+'</div>';
+  }
+  if(!ipHtml){
+    ipHtml='<div class="sharing-none">No unusual IP patterns. '+ipData.totalUniqueIPs+' unique IPs across '+Object.keys(A.users).length+' users.</div>';
+  } else {
+    ipHtml='<div style="font-size:.77rem;color:var(--text2);margin-bottom:.5rem;font-weight:300">'+ipData.totalUniqueIPs+' unique IPs recorded across '+Object.keys(A.users).length+' users.</div>'+ipHtml;
+  }
+
+  // Top content
+  var topC=Object.entries(A.titles).sort(function(a,b){return b[1]-a[1];}).slice(0,5);
+  var topP2=Object.entries(A.products).sort(function(a,b){return b[1]-a[1];}).slice(0,5);
+  var cItems=(topC.length?topC:topP2).map(function(x){return'<div class="citem"><span class="citem-name">'+x[0]+'</span><span class="citem-n">'+x[1]+'</span></div>';}).join('')||'<div style="color:var(--text3);font-size:.78rem;font-weight:300">No content data.</div>';
+
+  var flagsHtml=A.flags.length?A.flags.map(function(f){return'<div class="rflag"><div class="rfdot"></div><div>'+f+'</div></div>';}).join(''):'<div class="noflag">No significant risk signals detected.</div>';
+  var tpHtml=A.tps.map(function(t){return'<div class="tp">'+t+'</div>';}).join('');
+
+  var emailOnlyNote=A.emailOnly>0
+    ?'<div style="font-size:.72rem;color:var(--text3);padding:.4rem 0;font-weight:300">'+A.emailOnly+' user'+(A.emailOnly>1?'s':'')+' appear in email data only — they receive OE emails but have no recorded platform activity.</div>'
+    :'';
+
+  document.getElementById('content').innerHTML=
+    '<div class="dheader"><div><div class="dname">'+A.name+'</div><div class="dmeta"><span class="rbadge rb-'+A.band+'" style="margin-right:.5rem">'+A.band+'</span>Risk score: '+A.risk+' · '+ql(RQ)+'</div></div><button class="backbtn" onclick="showBook()">← Book</button></div>'
+    +'<div class="dgrid">'
+    +ds('QoQ trend',tstr,tcol,A.recEng+' vs '+A.priEng+' events')
+    +ds('Seats active',A.active+'/5',scol,Math.round(A.seatUtil)+'% of seats')
+    +ds('Last active',daysLabel(A.daysSince),dcol,A.lastPlatform||'no platform record')
+    +ds('Databank',A.totalDbEvts,A.totalDbEvts===0?'var(--high)':'var(--text)','events')
+    +ds('DB codes',A.dbCodeCount,A.dbCodeCount===0?'var(--high)':A.dbCodeCount===1?'var(--med)':'var(--low)','accessed')
+    +ds('AI assistant',A.chatbotEvts,A.chatbotEvts>0?'var(--teal)':'var(--text3)','messages')
+    +ds('Unique IPs',A.ipData.totalUniqueIPs,'var(--text)','across account')
+    +ds('Dormant',A.dormant,A.dormant>0?'var(--med)':'var(--text)','users gone quiet')
+    +'</div>'
+    +'<div class="chart"><div class="ctitle">Quarterly platform engagement</div><div class="bars">'+bars+'</div></div>'
+    +'<div class="two"><div class="panel"><div class="ptlabel">Consumption mix</div>'+mixBar+'</div><div class="panel"><div class="ptlabel">Top content</div><div class="clist">'+cItems+'</div></div></div>'
+    +'<div class="sec">Databank access</div>'
+    +'<div class="panel" style="margin-bottom:.65rem"><div class="ptlabel">Databanks accessed</div>'+dbHtml+'</div>'
+    +'<div class="sec">IP & access analysis</div>'
+    +'<div style="margin-bottom:.65rem">'+ipHtml+'</div>'
+    +'<div class="sec">User activity</div>'
+    +emailOnlyNote
+    +'<div class="panel" style="padding:0;overflow:hidden;margin-bottom:.65rem"><table class="utable"><thead><tr><th>User</th><th>Platform events</th><th>Last platform activity</th><th>Status</th><th>IPs</th></tr></thead><tbody>'+(userRows||'<tr><td colspan="5" style="color:var(--text3)">No user data.</td></tr>')+'</tbody></table></div>'
+    +'<div class="sec">Red flags</div><div style="margin-bottom:.65rem">'+flagsHtml+'</div>'
+    +'<div class="sec">Talking points</div>'+tpHtml;
+}
+
+function ds(label,val,col,sub){return'<div class="dstat"><div class="dslabel">'+label+'</div><div class="dsval" style="color:'+col+'">'+val+'</div><div class="dssub">'+sub+'</div></div>';}
+
+function handleFile(file){
+  if(!file||!file.name.match(/\.csv$/i)){alert('Please upload a CSV file.');return;}
+  document.getElementById('uprog').style.display='block';
+  var fill=document.getElementById('pfill'),lbl=document.getElementById('plabel');
+  fill.style.width='20%';lbl.textContent='Reading…';
+  var reader=new FileReader();
+  reader.onload=function(e){
+    fill.style.width='55%';lbl.textContent='Parsing CSV…';
+    setTimeout(function(){
+      try{
+        var rows=parseCSV(e.target.result);
+        fill.style.width='80%';lbl.textContent='Analysing '+rows.length.toLocaleString()+' events…';
+        setTimeout(function(){
+          ACCTS=process(rows);
+          LIST=Object.values(ACCTS).sort(function(a,b){return b.risk-a.risk;});
+          fill.style.width='100%';lbl.textContent='Done.';
+          var dates=rows.map(function(r){return r['EventDate'];}).filter(Boolean).sort();
+          document.getElementById('tmeta').textContent=LIST.length+' accounts · '+rows.length.toLocaleString()+' events · '+dates[0]+' to '+dates[dates.length-1];
+          setTimeout(function(){
+            document.getElementById('upload-screen').style.display='none';
+            document.getElementById('dashboard').style.display='block';
+            renderSidebar(null);showBook();
+          },300);
+        },150);
+      }catch(err){alert('Error: '+err.message);document.getElementById('uprog').style.display='none';}
+    },80);
+  };
+  reader.readAsText(file);
+}
+
+document.getElementById('csv-input').addEventListener('change',function(e){if(e.target.files[0])handleFile(e.target.files[0]);});
+var dz=document.getElementById('dropzone');
+dz.addEventListener('dragover',function(e){e.preventDefault();dz.classList.add('drag-over');});
+dz.addEventListener('dragleave',function(){dz.classList.remove('drag-over');});
+dz.addEventListener('drop',function(e){e.preventDefault();dz.classList.remove('drag-over');if(e.dataTransfer.files[0])handleFile(e.dataTransfer.files[0]);});
+function resetApp(){
+  ACCTS={};LIST=[];QUARTERS=[];
+  document.getElementById('upload-screen').style.display='flex';
+  document.getElementById('dashboard').style.display='none';
+  document.getElementById('uprog').style.display='none';
+  document.getElementById('pfill').style.width='0%';
+  document.getElementById('csv-input').value='';
+}
+</script>
+</body>
+</html>
