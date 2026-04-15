@@ -765,6 +765,7 @@ function buildSum(a){
 // ── PIPELINE VIEW ──
 // Pipeline state
 var _pipeWindow=90,_pipeHidePast=false;
+function setPipeHide(v){showPipeline(_pipeWindow,v==="hide");}
 
 function showPipeline(win,hidePast){
   if(win!==undefined)_pipeWindow=win;
@@ -799,11 +800,11 @@ function showPipeline(win,hidePast){
       return'<button class="pctl'+active+'" onclick="showPipeline('+opt[0]+',_pipeHidePast)">'+opt[1]+'</button>';
     }).join("")
     +'<div class="pipe-sep"></div>'
-    +'<select class="pctl pctl-sel" onchange="showPipeline(_pipeWindow,this.value==='hide')">'
+    +'<select class="pctl pctl-sel" onchange="setPipeHide(this.value)">'
     +'<option value="show"'+(!_pipeHidePast?' selected':'')+'>Show completed</option>'
     +'<option value="hide"'+(_pipeHidePast?' selected':'')+'>Hide completed</option>'
-    +"</select>"
-    +"</div>";
+    +'</select>'
+    +'</div>';
 
   html+='<div class="table-wrap"><table class="pipe-table"><thead><tr>'
     +'<th class="pipe-col-acct">Account</th><th class="pipe-col-owner">Owner</th>'
@@ -824,7 +825,7 @@ function showPipeline(win,hidePast){
       var tstr=a.trend>=0?"+"+a.trend.toFixed(0)+"%":a.trend.toFixed(0)+"%";
       var tcol=a.trend>=0?"var(--low)":"var(--high)";
       html+="<tr class='"+rowCls+"'>"
-        +'<td class="acct-cell pipe-col-acct" onclick="showAcct(''+esc(a.name)+'')">'+a.name+'</td>'
+        +'<td class="acct-cell pipe-col-acct" data-name="'+a.name.replace(/&/g,'&amp;').replace(/"/g,'&quot;')+'" style="cursor:pointer">'+a.name+'</td>'
         +'<td class="pipe-col-owner">'+(a.sf?a.sf.owner:"—")+"</td>"
         +'<td class="pipe-col-date">'+(a.nextRenewalDate?a.nextRenewalDate.toLocaleDateString("en-AU"):"—")+"</td>"
         +"<td class='pipe-col-days'>"+dstr+"</td>"
@@ -1033,10 +1034,14 @@ function handleSearch(q){
   if(!q){results.classList.remove('open');return;}
   var all=[...VERIFIED,...UNVERIFIED];
   var matches=all.filter(function(a){return a.name.toLowerCase().indexOf(q)>-1;}).slice(0,8);
-  if(!matches.length){results.innerHTML='<div class="sr-item" style="color:var(--text3)">No results</div>';results.classList.add('open');return;}
+  if(!matches.length){
+    results.innerHTML='<div class="sr-item" style="color:var(--text3);cursor:default">No results</div>';
+    results.classList.add('open');return;
+  }
   results.innerHTML=matches.map(function(a){
     var bandClass='rbadge rb-'+(a.isVerified?a.band:'UNVERIFIED');
-    return'<div class="sr-item" onclick="selectSearch(''+esc(a.name)+'')">'
+    var safeAttr=a.name.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+    return'<div class="sr-item" data-name="'+safeAttr+'">'
       +'<div class="sr-name">'+a.name+'</div>'
       +'<span class="sr-badge '+bandClass+'">'+(a.isVerified?a.band:'Unverified')+'</span>'
       +'</div>';
@@ -1044,14 +1049,27 @@ function handleSearch(q){
   results.classList.add('open');
 }
 function openSearch(){document.getElementById('search-results').classList.add('open');}
-function selectSearch(name){
-  document.getElementById('search-input').value='';
-  document.getElementById('search-results').classList.remove('open');
-  showAcct(name);
-}
+
 document.addEventListener('click',function(e){
-  if(!document.getElementById('search-wrap').contains(e.target)){
-    var r=document.getElementById('search-results');if(r)r.classList.remove('open');
+  // Search result click
+  var srItem=e.target.closest?e.target.closest('.sr-item'):null;
+  if(srItem&&srItem.dataset&&srItem.dataset.name){
+    document.getElementById('search-input').value='';
+    document.getElementById('search-results').classList.remove('open');
+    showAcct(srItem.dataset.name);
+    return;
+  }
+  // Pipeline table account cell click
+  var pipeCell=e.target.closest?e.target.closest('.acct-cell'):null;
+  if(pipeCell&&pipeCell.dataset&&pipeCell.dataset.name){
+    showAcct(pipeCell.dataset.name);
+    return;
+  }
+  // Close search dropdown when clicking outside
+  var wrap=document.getElementById('search-wrap');
+  if(wrap&&!wrap.contains(e.target)){
+    var r=document.getElementById('search-results');
+    if(r)r.classList.remove('open');
   }
 });
 
